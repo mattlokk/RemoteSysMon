@@ -112,27 +112,10 @@ class MainWindow(QMainWindow):
         self.screen_on_btn = QPushButton("Screen ON")
         self.screen_on_btn.clicked.connect(self.adb.screen_on)
         commands_layout.addWidget(self.screen_on_btn, 0, 0)
-        
+
         self.screen_off_btn = QPushButton("Screen OFF")
         self.screen_off_btn.clicked.connect(self.adb.screen_off)
         commands_layout.addWidget(self.screen_off_btn, 0, 1)
-        
-        self.wake_btn = QPushButton("Wake")
-        self.wake_btn.clicked.connect(self.adb.wake_device)
-        commands_layout.addWidget(self.wake_btn, 0, 2)
-        
-        # Volume controls
-        self.vol_up_btn = QPushButton("Volume +")
-        self.vol_up_btn.clicked.connect(self.adb.volume_up)
-        commands_layout.addWidget(self.vol_up_btn, 1, 0)
-        
-        self.vol_down_btn = QPushButton("Volume -")
-        self.vol_down_btn.clicked.connect(self.adb.volume_down)
-        commands_layout.addWidget(self.vol_down_btn, 1, 1)
-        
-        self.unlock_btn = QPushButton("Unlock")
-        self.unlock_btn.clicked.connect(self.adb.unlock_device)
-        commands_layout.addWidget(self.unlock_btn, 1, 2)
         
         layout.addLayout(commands_layout)
         

@@ -135,6 +135,10 @@ class ADBManager:
         except (subprocess.TimeoutExpired, FileNotFoundError, IOError) as e:
             print(f"Failed to push data: {e}")
             return False
+
+    def _send_wakeup_keyevent(self) -> bool:
+        """Send the wakeup key event to the attached device"""
+        return self._execute('input keyevent KEYCODE_WAKEUP') is not None
     
     def screen_on(self) -> bool:
         """
@@ -143,7 +147,10 @@ class ADBManager:
         Returns:
             True if successful, False otherwise
         """
-        return self._execute('input keyevent KEYCODE_WAKEUP') is not None
+        success = self._send_wakeup_keyevent()
+        if success:
+            self.unlock_device()
+        return success
     
     def screen_off(self) -> bool:
         """
@@ -161,7 +168,7 @@ class ADBManager:
         Returns:
             True if successful, False otherwise
         """
-        return self.screen_on()
+        return self._send_wakeup_keyevent()
     
     def press_power(self) -> bool:
         """
