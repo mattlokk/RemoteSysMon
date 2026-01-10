@@ -2,6 +2,8 @@
 System Tray Icon for RemoteSysMon
 """
 
+from typing import Optional
+
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor
 from PyQt6.QtCore import QObject, pyqtSignal, Qt
@@ -17,7 +19,7 @@ class TrayIcon(QObject):
     stop_monitoring = pyqtSignal()
     quit_app = pyqtSignal()
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QObject] = None):
         """
         Initialize system tray icon
         
@@ -121,7 +123,12 @@ class TrayIcon(QObject):
         """Hide tray icon"""
         self.tray_icon.hide()
     
-    def show_message(self, title: str, message: str, icon=QSystemTrayIcon.MessageIcon.Information):
+    def show_message(
+        self,
+        title: str,
+        message: str,
+        icon: QSystemTrayIcon.MessageIcon = QSystemTrayIcon.MessageIcon.Information,
+    ) -> None:
         """
         Show notification message
         
@@ -132,7 +139,7 @@ class TrayIcon(QObject):
         """
         self.tray_icon.showMessage(title, message, icon, 3000)
     
-    def on_activated(self, reason):
+    def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """
         Handle tray icon activation
         

@@ -2,18 +2,21 @@
 Settings Dialog for RemoteSysMon
 """
 
+from typing import Any, Dict, Optional
+
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QWidget, QLabel, QLineEdit, QPushButton, 
                              QSpinBox, QCheckBox, QColorDialog, QGroupBox,
                              QGridLayout, QComboBox)
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
+
+from core.config import Config
 
 
 class SettingsDialog(QDialog):
     """Settings dialog for application configuration"""
     
-    def __init__(self, config, parent=None):
+    def __init__(self, config: Config, parent: Optional[QWidget] = None):
         """
         Initialize settings dialog
         
@@ -22,7 +25,19 @@ class SettingsDialog(QDialog):
             parent: Parent widget
         """
         super().__init__(parent)
-        self.config = config
+        self.config: Config = config
+        self.bg_color_btn: QPushButton
+        self.text_color_btn: QPushButton
+        self.accent_color_btn: QPushButton
+        self.theme_combo: QComboBox
+        self.font_size_spin: QSpinBox
+        self.refresh_rate_spin: QSpinBox
+        self.show_graphs_check: QCheckBox
+        self.auto_start_check: QCheckBox
+        self.minimize_to_tray_check: QCheckBox
+        self.start_minimized_check: QCheckBox
+        self.target_path_input: QLineEdit
+        self.auto_connect_check: QCheckBox
         
         self.setWindowTitle("Settings")
         self.setModal(True)
@@ -190,14 +205,14 @@ class SettingsDialog(QDialog):
         widget.setLayout(layout)
         return widget
     
-    def _pick_color(self, color_type: str):
+    def _pick_color(self, color_type: str) -> None:
         """
         Open color picker dialog
         
         Args:
             color_type: Type of color ('bg', 'text', 'accent')
         """
-        button_map = {
+        button_map: Dict[str, QPushButton] = {
             'bg': self.bg_color_btn,
             'text': self.text_color_btn,
             'accent': self.accent_color_btn
@@ -220,7 +235,7 @@ class SettingsDialog(QDialog):
         if color.isValid():
             self._set_button_color(button, color.name())
     
-    def _set_button_color(self, button: QPushButton, color: str):
+    def _set_button_color(self, button: QPushButton, color: str) -> None:
         """
         Set button color preview
         
@@ -232,7 +247,7 @@ class SettingsDialog(QDialog):
         button.setStyleSheet(f"background-color: {color}; min-height: 30px;")
         button.setText(color)
     
-    def _on_theme_changed(self, theme: str):
+    def _on_theme_changed(self, theme: str) -> None:
         """
         Handle theme change
         
@@ -248,10 +263,10 @@ class SettingsDialog(QDialog):
             self._set_button_color(self.text_color_btn, "#000000")
             self._set_button_color(self.accent_color_btn, "#0078d4")
     
-    def load_settings(self):
+    def load_settings(self) -> None:
         """Load current settings into UI"""
         # Appearance
-        appearance = self.config.get_appearance()
+        appearance: Dict[str, Any] = self.config.get_appearance()
         self._set_button_color(self.bg_color_btn, appearance.get('background_color', '#1e1e1e'))
         self._set_button_color(self.text_color_btn, appearance.get('text_color', '#ffffff'))
         self._set_button_color(self.accent_color_btn, appearance.get('accent_color', '#0078d4'))
@@ -265,17 +280,17 @@ class SettingsDialog(QDialog):
         self.show_graphs_check.setChecked(appearance.get('show_graphs', True))
         
         # Monitoring
-        monitoring = self.config.get_monitoring_settings()
+        monitoring: Dict[str, Any] = self.config.get_monitoring_settings()
         self.auto_start_check.setChecked(monitoring.get('auto_start', True))
         self.minimize_to_tray_check.setChecked(monitoring.get('minimize_to_tray', True))
         self.start_minimized_check.setChecked(monitoring.get('start_minimized', False))
         
         # ADB
-        adb = self.config.get_adb_settings()
+        adb: Dict[str, Any] = self.config.get_adb_settings()
         self.target_path_input.setText(adb.get('target_path', '/data/local/tmp/system_stats.json'))
         self.auto_connect_check.setChecked(adb.get('auto_connect', True))
     
-    def save_settings(self):
+    def save_settings(self) -> None:
         """Save settings from UI"""
         # Appearance
         self.config.set('appearance', 'background_color', self.bg_color_btn.property('color'))
@@ -297,7 +312,7 @@ class SettingsDialog(QDialog):
         
         self.accept()
     
-    def reset_defaults(self):
+    def reset_defaults(self) -> None:
         """Reset all settings to defaults"""
         self.config.reset_to_defaults()
         self.load_settings()
