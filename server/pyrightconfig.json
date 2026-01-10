@@ -1,0 +1,9 @@
+{
+  "typeCheckingMode": "strict",
+  "include": [
+    "main.py",
+    "gui"
+  ],
+  "venvPath": ".",
+  "venv": "venv"
+}

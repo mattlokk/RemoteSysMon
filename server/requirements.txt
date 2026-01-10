@@ -1,0 +1,16 @@
+# RemoteSysMon Server Requirements
+
+# System monitoring
+psutil>=5.9.0
+
+# GUI Framework
+PyQt6>=6.4.0
+PyQt6-Qt6>=6.4.0
+
+# For packaging (optional)
+pyinstaller>=5.7.0
+
+# Development dependencies (optional)
+# pytest>=7.2.0
+# black>=22.0.0
+PyQt6-stubs>=20250824

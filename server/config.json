@@ -1,0 +1,21 @@
+{
+  "appearance": {
+    "background_color": "#00444c",
+    "text_color": "#ddf9e1",
+    "accent_color": "#0078d4",
+    "font_size": 14,
+    "theme": "dark",
+    "show_graphs": true,
+    "refresh_rate_ms": 100
+  },
+  "adb": {
+    "device_id": null,
+    "auto_connect": true,
+    "target_path": "/data/local/tmp/system_stats.json"
+  },
+  "monitoring": {
+    "auto_start": true,
+    "minimize_to_tray": true,
+    "start_minimized": false
+  }
+}
