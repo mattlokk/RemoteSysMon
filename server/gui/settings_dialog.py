@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QWidget, QLabel, QLineEdit, QPushButton, 
                              QSpinBox, QCheckBox, QColorDialog, QGroupBox,
-                             QGridLayout, QComboBox)
+                             QGridLayout)
 from PyQt6.QtGui import QColor
 
 from core.config import Config
@@ -28,8 +28,8 @@ class SettingsDialog(QDialog):
         self.config: Config = config
         self.bg_color_btn: QPushButton
         self.text_color_btn: QPushButton
-        self.accent_color_btn: QPushButton
-        self.theme_combo: QComboBox
+        self.tile_background_btn: QPushButton
+        self.tile_text_color_btn: QPushButton
         self.font_size_spin: QSpinBox
         self.refresh_rate_spin: QSpinBox
         self.show_graphs_check: QCheckBox
@@ -110,11 +110,16 @@ class SettingsDialog(QDialog):
         self.text_color_btn.clicked.connect(lambda: self._pick_color('text'))
         colors_layout.addWidget(self.text_color_btn, 1, 1)
         
-        # Accent color
-        colors_layout.addWidget(QLabel("Accent:"), 2, 0)
-        self.accent_color_btn = QPushButton()
-        self.accent_color_btn.clicked.connect(lambda: self._pick_color('accent'))
-        colors_layout.addWidget(self.accent_color_btn, 2, 1)
+        # Tile background color
+        colors_layout.addWidget(QLabel("Tile Background:"), 2, 0)
+        self.tile_background_btn = QPushButton()
+        self.tile_background_btn.clicked.connect(lambda: self._pick_color('tile_background'))
+        colors_layout.addWidget(self.tile_background_btn, 2, 1)
+
+        colors_layout.addWidget(QLabel("Tile Text:"), 3, 0)
+        self.tile_text_color_btn = QPushButton()
+        self.tile_text_color_btn.clicked.connect(lambda: self._pick_color('tile_text'))
+        colors_layout.addWidget(self.tile_text_color_btn, 3, 1)
         
         colors_group.setLayout(colors_layout)
         layout.addWidget(colors_group)
@@ -123,31 +128,24 @@ class SettingsDialog(QDialog):
         display_group = QGroupBox("Display")
         display_layout = QGridLayout()
         
-        # Theme
-        display_layout.addWidget(QLabel("Theme:"), 0, 0)
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["dark", "light", "custom"])
-        self.theme_combo.currentTextChanged.connect(self._on_theme_changed)
-        display_layout.addWidget(self.theme_combo, 0, 1)
-        
         # Font size
-        display_layout.addWidget(QLabel("Font Size:"), 1, 0)
+        display_layout.addWidget(QLabel("Font Size:"), 0, 0)
         self.font_size_spin = QSpinBox()
         self.font_size_spin.setRange(8, 24)
         self.font_size_spin.setSuffix(" pt")
-        display_layout.addWidget(self.font_size_spin, 1, 1)
-        
+        display_layout.addWidget(self.font_size_spin, 0, 1)
+
         # Refresh rate
-        display_layout.addWidget(QLabel("Refresh Rate:"), 2, 0)
+        display_layout.addWidget(QLabel("Refresh Rate:"), 1, 0)
         self.refresh_rate_spin = QSpinBox()
         self.refresh_rate_spin.setRange(100, 10000)
         self.refresh_rate_spin.setSingleStep(100)
         self.refresh_rate_spin.setSuffix(" ms")
-        display_layout.addWidget(self.refresh_rate_spin, 2, 1)
-        
+        display_layout.addWidget(self.refresh_rate_spin, 1, 1)
+
         # Show graphs
         self.show_graphs_check = QCheckBox("Show Graphs")
-        display_layout.addWidget(self.show_graphs_check, 3, 0, 1, 2)
+        display_layout.addWidget(self.show_graphs_check, 2, 0, 1, 2)
         
         display_group.setLayout(display_layout)
         layout.addWidget(display_group)
@@ -210,12 +208,13 @@ class SettingsDialog(QDialog):
         Open color picker dialog
         
         Args:
-            color_type: Type of color ('bg', 'text', 'accent')
+            color_type: Type of color ('bg', 'text', 'tile_background')
         """
         button_map: Dict[str, QPushButton] = {
             'bg': self.bg_color_btn,
             'text': self.text_color_btn,
-            'accent': self.accent_color_btn
+            'tile_background': self.tile_background_btn,
+            'tile_text': self.tile_text_color_btn
         }
         
         button = button_map.get(color_type)
@@ -230,7 +229,8 @@ class SettingsDialog(QDialog):
             initial_color = QColor('#ffffff')
         
         # Show color picker
-        color = QColorDialog.getColor(initial_color, self, f"Choose {color_type.title()} Color")
+        display_name = color_type.replace('_', ' ').title()
+        color = QColorDialog.getColor(initial_color, self, f"Choose {display_name} Color")
         
         if color.isValid():
             self._set_button_color(button, color.name())
@@ -247,33 +247,20 @@ class SettingsDialog(QDialog):
         button.setStyleSheet(f"background-color: {color}; min-height: 30px;")
         button.setText(color)
     
-    def _on_theme_changed(self, theme: str) -> None:
-        """
-        Handle theme change
-        
-        Args:
-            theme: Selected theme name
-        """
-        if theme == "dark":
-            self._set_button_color(self.bg_color_btn, "#1e1e1e")
-            self._set_button_color(self.text_color_btn, "#ffffff")
-            self._set_button_color(self.accent_color_btn, "#0078d4")
-        elif theme == "light":
-            self._set_button_color(self.bg_color_btn, "#ffffff")
-            self._set_button_color(self.text_color_btn, "#000000")
-            self._set_button_color(self.accent_color_btn, "#0078d4")
-    
     def load_settings(self) -> None:
         """Load current settings into UI"""
         # Appearance
         appearance: Dict[str, Any] = self.config.get_appearance()
         self._set_button_color(self.bg_color_btn, appearance.get('background_color', '#1e1e1e'))
         self._set_button_color(self.text_color_btn, appearance.get('text_color', '#ffffff'))
-        self._set_button_color(self.accent_color_btn, appearance.get('accent_color', '#0078d4'))
-        
-        theme_index = self.theme_combo.findText(appearance.get('theme', 'dark'))
-        if theme_index >= 0:
-            self.theme_combo.setCurrentIndex(theme_index)
+        self._set_button_color(
+            self.tile_background_btn,
+            appearance.get('tile_background_color', appearance.get('accent_color', '#0078d4'))
+        )
+        self._set_button_color(
+            self.tile_text_color_btn,
+            appearance.get('tile_text_color', appearance.get('text_color', '#ffffff'))
+        )
         
         self.font_size_spin.setValue(appearance.get('font_size', 14))
         self.refresh_rate_spin.setValue(appearance.get('refresh_rate_ms', 1000))
@@ -295,8 +282,8 @@ class SettingsDialog(QDialog):
         # Appearance
         self.config.set('appearance', 'background_color', self.bg_color_btn.property('color'))
         self.config.set('appearance', 'text_color', self.text_color_btn.property('color'))
-        self.config.set('appearance', 'accent_color', self.accent_color_btn.property('color'))
-        self.config.set('appearance', 'theme', self.theme_combo.currentText())
+        self.config.set('appearance', 'tile_background_color', self.tile_background_btn.property('color'))
+        self.config.set('appearance', 'tile_text_color', self.tile_text_color_btn.property('color'))
         self.config.set('appearance', 'font_size', self.font_size_spin.value())
         self.config.set('appearance', 'refresh_rate_ms', self.refresh_rate_spin.value())
         self.config.set('appearance', 'show_graphs', self.show_graphs_check.isChecked())

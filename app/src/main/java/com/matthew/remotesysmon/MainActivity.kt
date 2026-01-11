@@ -23,6 +23,9 @@ import com.google.gson.annotations.SerializedName
 import com.matthew.remotesysmon.ui.theme.RemoteSysMonTheme
 import kotlinx.coroutines.delay
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // Data classes for JSON parsing (v2.0 format)
 data class RemoteSysMonData(
@@ -58,12 +61,17 @@ data class GpuStats(
 data class AppearanceSettings(
     @SerializedName("background_color") val backgroundColor: String,
     @SerializedName("text_color") val textColor: String,
-    @SerializedName("accent_color") val accentColor: String,
+    @SerializedName("tile_background_color") val tileBackgroundColor: String?,
+    @SerializedName("tile_text_color") val tileTextColor: String?,
+    @SerializedName("accent_color") val accentColor: String?,
     @SerializedName("font_size") val fontSize: Int,
     val theme: String,
     @SerializedName("show_graphs") val showGraphs: Boolean,
     @SerializedName("refresh_rate_ms") val refreshRateMs: Int
 )
+
+val AppearanceSettings.effectiveTileBackgroundColor: String get() = this.tileBackgroundColor ?: this.accentColor ?: "#0078d4"
+val AppearanceSettings.effectiveTileTextColor: String get() = this.tileTextColor ?: this.textColor
 
 data class MetadataInfo(
     val timestamp: String,
@@ -106,8 +114,9 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                 monitorData = data
                 errorMessage = null
             } catch (e: Exception) {
-                errorMessage = e.message ?: "Unknown error"
-                monitorData = null
+                if (monitorData == null) {
+                    errorMessage = e.message ?: "Unknown error"
+                }
             }
             // Use refresh rate from data, or default to 2 seconds
             val refreshDelay = monitorData?.appearance?.refreshRateMs?.toLong() ?: 2000L
@@ -116,17 +125,18 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
     }
 
     val remoteTheme = monitorData?.appearance?.let { appearance ->
+        val tileColor = parseColor(appearance.effectiveTileBackgroundColor)
         val colors = if (appearance.theme.equals("dark", ignoreCase = true)) {
             darkColorScheme(
                 background = parseColor(appearance.backgroundColor),
                 surface = parseColor(appearance.backgroundColor),
                 onBackground = parseColor(appearance.textColor),
                 onSurface = parseColor(appearance.textColor),
-                primary = parseColor(appearance.accentColor),
+                primary = tileColor,
                 onPrimary = parseColor(appearance.backgroundColor),
                 onSurfaceVariant = parseColor(appearance.textColor).copy(alpha = 0.7f),
-                tertiaryContainer = parseColor(appearance.accentColor).copy(alpha = 0.2f),
-                onTertiaryContainer = parseColor(appearance.accentColor)
+                tertiaryContainer = tileColor.copy(alpha = 0.2f),
+                onTertiaryContainer = tileColor
             )
         } else {
             lightColorScheme(
@@ -134,11 +144,11 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                 surface = parseColor(appearance.backgroundColor),
                 onBackground = parseColor(appearance.textColor),
                 onSurface = parseColor(appearance.textColor),
-                primary = parseColor(appearance.accentColor),
+                primary = tileColor,
                 onPrimary = parseColor(appearance.backgroundColor),
                 onSurfaceVariant = parseColor(appearance.textColor).copy(alpha = 0.7f),
-                tertiaryContainer = parseColor(appearance.accentColor).copy(alpha = 0.2f),
-                onTertiaryContainer = parseColor(appearance.accentColor)
+                tertiaryContainer = tileColor.copy(alpha = 0.2f),
+                onTertiaryContainer = tileColor
             )
         }
 
@@ -148,7 +158,8 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
             titleMedium = MaterialTheme.typography.titleMedium.copy(fontSize = baseFontSize * 1.15),
             displaySmall = MaterialTheme.typography.displaySmall.copy(fontSize = baseFontSize * 2.5, fontWeight = FontWeight.Bold),
             bodyLarge = MaterialTheme.typography.bodyLarge.copy(fontSize = baseFontSize),
-            labelSmall = MaterialTheme.typography.labelSmall.copy(fontSize = baseFontSize * 0.75)
+            labelSmall = MaterialTheme.typography.labelSmall.copy(fontSize = baseFontSize * 0.75),
+            labelLarge = MaterialTheme.typography.labelLarge.copy(fontSize = baseFontSize * 5, fontWeight = FontWeight.Bold)
         )
         Pair(colors, typography)
     }
@@ -173,14 +184,9 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                 } else if (monitorData != null) {
                     val stats = monitorData!!.stats
                     val metadata = monitorData!!.metadata
-
-                    // Timestamp
-                    Text(
-                        text = "Last updated: ${metadata.timestamp}",
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.align(Alignment.End)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    val appearance = monitorData!!.appearance
+                    val labelColor = parseColor(appearance.textColor)
+                    val tileFontColor = parseColor(appearance.effectiveTileTextColor)
 
                     // Show warning if present
                     if (metadata.warning != null) {
@@ -189,11 +195,22 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                     }
 
                     // CPU Stats
-                    Text(
-                        text = "CPU",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.align(Alignment.Start)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "CPU",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        if (stats.cpu.cpuPowerWatts != null) {
+                            Text(
+                                text = "%.1f W".format(stats.cpu.cpuPowerWatts),
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -202,33 +219,39 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                         StatTile(
                             label = "Usage",
                             value = "%.1f%%".format(stats.cpu.cpuPercent),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            labelColor = tileFontColor,
+                            valueColor = tileFontColor
                         )
                         StatTile(
                             label = "Temperature",
                             value = "%.1f°C".format(stats.cpu.cpuTempCelsius),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            labelColor = tileFontColor,
+                            valueColor = tileFontColor
                         )
                     }
 
-                    // CPU Power (if available)
-                    if (stats.cpu.cpuPowerWatts != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        StatTile(
-                            label = "CPU Power",
-                            value = "%.1f W".format(stats.cpu.cpuPowerWatts),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // GPU Stats
-                    Text(
-                        text = "GPU",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.align(Alignment.Start)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "GPU",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        if (stats.gpu.gpuPowerWatts != null) {
+                            Text(
+                                text = "%.1f W".format(stats.gpu.gpuPowerWatts),
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -237,22 +260,16 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                         StatTile(
                             label = "Usage",
                             value = "${stats.gpu.gpuUsagePercent}%",
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            labelColor = tileFontColor,
+                            valueColor = tileFontColor
                         )
                         StatTile(
                             label = "Temperature",
                             value = "%.1f°C".format(stats.gpu.gpuTempCelsius),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // GPU Power (if available)
-                    if (stats.gpu.gpuPowerWatts != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        StatTile(
-                            label = "GPU Power",
-                            value = "%.1f W".format(stats.gpu.gpuPowerWatts),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f),
+                            labelColor = tileFontColor,
+                            valueColor = tileFontColor
                         )
                     }
 
@@ -270,16 +287,22 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         StatTile(
-                            label = "Usage",
-                            value = "%.1f%%".format(stats.memory.percent),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatTile(
-                            label = "Memory",
                             value = "%.1f / %.1f GB".format(stats.memory.usedGb, stats.memory.totalGb),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            labelColor = tileFontColor,
+                            valueColor = tileFontColor
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(72.dp))
+
+                    // Timestamp
+                    val currentTime = SimpleDateFormat("hh:mm aa", Locale.getDefault()).format(Date())
+                    Text(
+                        text = currentTime,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
 
                 } else {
                     // Loading state
@@ -297,25 +320,36 @@ fun SystemMonitorScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
+fun StatTile(
+    value: String,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    labelColor: Color = MaterialTheme.colorScheme.onPrimary,
+    valueColor: Color = MaterialTheme.colorScheme.onPrimary
+) {
     Card(
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            if (label != null) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = labelColor
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Text(
                 text = value,
                 style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = valueColor
             )
         }
     }

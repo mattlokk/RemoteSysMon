@@ -15,9 +15,9 @@ class Config:
         "appearance": {
             "background_color": "#1e1e1e",
             "text_color": "#ffffff",
-            "accent_color": "#0078d4",
+            "tile_background_color": "#0078d4",
+            "tile_text_color": "#ffffff",
             "font_size": 14,
-            "theme": "dark",
             "show_graphs": True,
             "refresh_rate_ms": 1000
         },
@@ -55,11 +55,30 @@ class Config:
                 with open(self.config_path, 'r') as f:
                     loaded_config = json.load(f)
                     # Merge with defaults to ensure all keys exist
-                    return self._merge_configs(self.DEFAULT_CONFIG, loaded_config)
+                    return self._migrate_config(self._merge_configs(self.DEFAULT_CONFIG, loaded_config))
             except (json.JSONDecodeError, IOError) as e:
                 print(f"Error loading config: {e}. Using defaults.")
-                return self.DEFAULT_CONFIG.copy()
-        return self.DEFAULT_CONFIG.copy()
+                return self._migrate_config(self.DEFAULT_CONFIG.copy())
+        return self._migrate_config(self.DEFAULT_CONFIG.copy())
+
+    def _migrate_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize config keys for backwards compatibility
+
+        Args:
+            config: Loaded configuration
+
+        Returns:
+            Config with new keys applied
+        """
+        appearance = config.get('appearance')
+        if isinstance(appearance, dict):
+            if 'tile_background_color' not in appearance and 'accent_color' in appearance:
+                appearance['tile_background_color'] = appearance['accent_color']
+                appearance.pop('accent_color', None)
+            if 'tile_text_color' not in appearance:
+                appearance['tile_text_color'] = appearance.get('text_color', '#ffffff')
+        return config
     
     def _merge_configs(self, default: Dict, loaded: Dict) -> Dict:
         """

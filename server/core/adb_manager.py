@@ -259,6 +259,31 @@ class ADBManager:
         """
         return self._execute(command)
     
+    def launch_app(self, package: str, activity: Optional[str] = None) -> bool:
+        """
+        Launch an activity on the connected device
+
+        Args:
+            package: Application package name
+            activity: Activity name (short or fully-qualified)
+
+        Returns:
+            True if the launch command succeeded, False otherwise
+        """
+
+        component = package
+        if activity:
+            if activity.startswith(package):
+                component = activity
+            elif activity.startswith('/'):
+                component = f"{package}{activity}"
+            elif activity.startswith('.'):
+                component = f"{package}/{activity}"
+            else:
+                component = f"{package}/{activity}"
+
+        return self._execute(f'am start -n {component}') is not None
+
     def _execute(self, command: str, silent: bool = False) -> Optional[str]:
         """
         Execute ADB shell command

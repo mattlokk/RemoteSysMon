@@ -14,10 +14,10 @@ A desktop application for monitoring system resources (CPU, Memory, GPU) and pus
   - Screen controls (on/off, wake, unlock)
   - Volume controls
   - Custom ADB commands
+  - Launch the RemoteSysMon Android app on demand
 
 - 🎨 **Customizable Appearance**
-  - Dark/Light themes
-  - Configurable colors (background, text, accent)
+-  - Configurable colors (background, text, tile background, tile text)
   - Adjustable font size
   - Configurable refresh rate
 
@@ -106,10 +106,10 @@ sudo ./monitor_and_push.py
 - **Unlock** - Swipe up gesture to unlock
 - **Volume +/-** - Adjust device volume
 - **Custom Command** - Execute any ADB shell command
+- **Launch App** - Start the RemoteSysMon Android client on the connected device
 
 #### Settings
 - **Appearance Tab:**
-  - Choose theme (dark/light/custom)
   - Customize colors
   - Adjust font size
   - Set refresh rate (100-10000ms)
@@ -146,15 +146,15 @@ The app sends data to your Android device in this format:
       "gpu_power_watts": 37.50
     }
   },
-  "appearance": {
-    "background_color": "#1e1e1e",
-    "text_color": "#ffffff",
-    "accent_color": "#0078d4",
-    "font_size": 14,
-    "theme": "dark",
-    "show_graphs": true,
-    "refresh_rate_ms": 1000
-  },
+    "appearance": {
+      "background_color": "#1e1e1e",
+      "text_color": "#ffffff",
+      "tile_text_color": "#ffffff",
+      "tile_background_color": "#0078d4",
+      "font_size": 14,
+      "show_graphs": true,
+      "refresh_rate_ms": 1000
+    },
   "metadata": {
     "timestamp": "2026-01-09T12:34:56",
     "version": "2.0.0",

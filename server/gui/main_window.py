@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QComboBox, QGroupBox, 
-                             QTextEdit, QLineEdit, QGridLayout, QSlider)
+                             QTextEdit, QLineEdit, QGridLayout, QSlider,
+                             QMessageBox)
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QCloseEvent
 
@@ -107,7 +108,7 @@ class MainWindow(QMainWindow):
         
         # ADB commands grid
         commands_layout = QGridLayout()
-        
+
         # Screen controls
         self.screen_on_btn = QPushButton("Screen ON")
         self.screen_on_btn.clicked.connect(self.adb.screen_on)
@@ -116,6 +117,10 @@ class MainWindow(QMainWindow):
         self.screen_off_btn = QPushButton("Screen OFF")
         self.screen_off_btn.clicked.connect(self.adb.screen_off)
         commands_layout.addWidget(self.screen_off_btn, 0, 1)
+
+        self.launch_app_btn = QPushButton("Launch App")
+        self.launch_app_btn.clicked.connect(self.launch_app_on_device)
+        commands_layout.addWidget(self.launch_app_btn, 1, 0, 1, 2)
         
         layout.addLayout(commands_layout)
         
@@ -237,6 +242,20 @@ class MainWindow(QMainWindow):
                 print(f"Command output: {result}")
                 self.custom_cmd_input.clear()
     
+    def launch_app_on_device(self) -> None:
+        """Launch the RemoteSysMon Android client on the connected device"""
+        current_index = self.device_combo.currentIndex()
+        if current_index >= 0:
+            device_id = self.device_combo.itemData(current_index)
+            if isinstance(device_id, str):
+                self.adb.connect(device_id)
+
+        success = self.adb.launch_app("com.matthew.remotesysmon", ".MainActivity")
+        if success:
+            QMessageBox.information(self, "Launch App", "RemoteSysMon was launched on the device.")
+        else:
+            QMessageBox.warning(self, "Launch App", "Failed to launch RemoteSysMon on the device.")
+
     def on_brightness_changed(self, value: int) -> None:
         """Handle brightness slider change"""
         if self.adb.device_id:
